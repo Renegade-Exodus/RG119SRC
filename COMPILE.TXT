@@ -1,0 +1,55 @@
+Step 0) Assumptions:
+
+	The first assumption is that you have Borland Pascal installed in Z:\BP.  
+	If you don't, you'll have to update the BUILDBP.CMD file
+
+	The second assumption is that you have Virtual Pascal installed in Z:\vp21.
+	If you don't, you'll have to update the BUILDVP.CMD file
+
+	*NOTE* The BUILD*.CMD files will copy a BPC.CFG or VPC.CFG into the relevant bin directory, meaning
+	if you have cusomized the .CFG file in the bin directory, it will be lost.  Make a backup!
+
+Step 1) Create directories to hold everything:
+
+	Z:\RG119
+	Z:\Programming\RG119SRC
+	Z:\Programming\RG119SRC\EXE\BP
+	Z:\Programming\RG119SRC\EXE\VP
+
+	If you don't have a Z: drive, you can use SUBST or map a network drive to fake one
+	You can also put the files in an alternate location if you want, you'll just have to update the BUILD*.CMD scripts
+
+Step 2) Get the source
+
+	Check out the GIT contents into Z:\Programming\RG119SRC
+
+Step 3) Edit Z:\vp21\source\rtl\vpsysw32.pas
+
+	For some reason the cursor position isn't always updated in the background thread in the Win32 version.  I'm guessing
+    it's a race condition with the CurXPos and CurYPos variables, so the thread doesn't think an update is needed when
+    one really is.   So I've updated my copy of CursorThreadFunc to take the return value of the SemWaitEvent() call into
+    account, so the update will also happen if the event is signaled.  Can't think of a reason why they wouldn't have done
+    this in the first place.  Here's the entire function to copy/paste into place:
+    
+    function CursorThreadFunc(P: Pointer): Longint;
+    var
+      LastX, LastY: Longint;
+    begin
+      LastX := -1;
+      LastY := -1;
+      repeat
+        if SemWaitEvent(semCursor, 300) or (CurXPos <> LastX) or (CurYPos <> LastY) then
+          begin
+            DoSetCursorPosition;
+            LastX := CurXPos;
+            LastY := CurYPos;
+          end;
+      until tidCursor = -2;
+      tidCursor := -1;
+    end;
+    
+Step 4) Build new EXEs
+
+	Run BUILDBP.CMD to build the DOS EXEs and have them copied to Z:\RG119
+
+	Run BUILDVP.CMD to build the WIN32 EXEs and have them copied to Z:\RG119
