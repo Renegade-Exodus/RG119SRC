@@ -35,6 +35,8 @@ VAR
   UserYPos,
   SysOpXPos,
   SysOpYPos: Byte;
+  Cmd : Char;
+  ChatHelp : Boolean;
 
 PROCEDURE RequestSysOpChat(CONST MenuOption: Str50);
 VAR
@@ -225,14 +227,22 @@ BEGIN
 END;
 
 PROCEDURE SysOpChatWindow;
+Var SysopNameLength : Integer;
 BEGIN
+  SysopNameLength := ( 80 - Length(General.SysOpName) );
   CLS;
   ANSIG(1,1);
-  Prompt('ีออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออธ');
+  Prompt('^4รรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรร');
+  ANSIG( ( SysopNameLength - 5 ), 1);
+  Prompt('^4[ ^5' + General.SysOpName + ' ^4]');
   ANSIG(1,12);
-  Prompt('ฦอออออออออออออออออออออออออออออออต CTRL-Z Help ฦออออออออออออออออออออออออออออออออต');
+  Prompt('^4รรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรร');
+  ANSIG(31,12);
+  Prompt('^4[ ^5Ctl^4+^5Z for Help ^4]');
   ANSIG(1,23);
-  Prompt('ิออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออพ');
+  Prompt('^4รรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรรร');
+  ANSIG(3,23);
+  Prompt('^4[ ^5'+ ThisUser.Name + ' ^4]');
 END;
 
 PROCEDURE SysOpSplitChat;
@@ -391,7 +401,27 @@ VAR
 
     Inc(YPos);
     XPos := 2;
-    ANSIG(XPos,YPos);
+    { Fix Splitscreen so user and op stay on their own sides }
+    If (YPos = 12) Then 
+     Begin
+      For i := 2 To 10 Do
+       Begin
+        ANSIG(1,i);
+        Clear_EOL;
+       End;
+      YPos := 2;
+    End
+    Else If (YPos = 23) Then
+     Begin
+      For i := 13 To 21 Do
+       Begin
+        ANSIG(1,i);
+        Clear_EOL;
+       End;
+    YPos := 13;
+    End;
+    
+   ANSIG(XPos,YPos);
 
     (* Do Cmds Here or add as Ctrl *)
 
@@ -523,7 +553,7 @@ BEGIN
           ELSE
             DOCarriageReturn(UserCPos,UserXPos,UserYPos,UserStr);
 
-     17 : InChat := FALSE;
+     17,27 : InChat := FALSE;
 
      23 : IF (WColor) THEN
             DOBackSpaceWord(SysOpCPos,SysOpXPos,SysOpYPos,SysOpStr)
@@ -534,7 +564,31 @@ BEGIN
           ELSE
             DOBackSpaceLine(UserCPos,UserXpos,UserYPos,UserStr);
 
-     26 : ; { Help }
+     26 : Begin { Ctrl+Z }
+
+      PrintF('CHATHELP');
+            If Not nofile Then
+             Begin
+              OneK(Cmd,#27#26,FALSE,FALSE);
+              Case Ord(Cmd) Of
+	       26,27 : SysOpChatWindow; { Escape }
+	      End; { /case }
+             End { /If Not }
+             Else
+              Begin
+                ChatHelp := TRUE;
+                ANSIG(38,18);
+                Print('^5Chat Help |15: ^4(^5Ctrl+C ^5:: ^4Clear Help^5)');
+                ANSIG(38,19);
+                Print('^5Ctrl+G |15: ^4Hangup     ^5Ctrl+W |15: ^4Delete Word');
+                ANSIG(38,20);
+                Print('^5Ctrl+H |15: ^4Backspace  ^5Ctrl+X |15: ^4Delete Line');
+                ANSIG(38,21);
+                Print('^5Ctrl+H |15: ^4Tab        ^5Ctrl+Q |15: ^4Quit|07');
+
+                ANSIG(SaveWhereX,SaveWhereY);
+              End; { /If Not else case }
+          End; { /26 }; { Help }
     END;
 
     (*
